@@ -4,11 +4,26 @@ import xml.etree.ElementTree as ET
 
 def remove_namespace(tag):
 
+    """
+    Remove namespace do XML.
+
+    Ex:
+    {http://www.portalfiscal.inf.br/nfe}nNF
+
+    vira:
+
+    nNF
+    """
+
     return tag.split("}")[-1]
 
 
 
 def find_element(root, name):
+
+    """
+    Busca elemento independente de namespace.
+    """
 
     for element in root.iter():
 
@@ -20,17 +35,34 @@ def find_element(root, name):
 
 
 
+def get_text(element):
+
+    """
+    Retorna texto tratado do XML.
+    """
+
+    if element is not None and element.text:
+
+        return element.text.strip()
+
+    return None
+
+
+
 def extract_metadata(xml):
 
+    """
+    Extrai informações básicas da NF-e.
+    """
 
     root = ET.fromstring(
         xml
     )
 
 
-    # ===============================
+    # ==================================
     # Chave NF-e
-    # ===============================
+    # ==================================
 
     chave = find_element(
         root,
@@ -38,16 +70,13 @@ def extract_metadata(xml):
     )
 
 
-    chave_acesso = None
+    chave_acesso = get_text(
+        chave
+    )
 
 
-    if chave is not None:
-
-        chave_acesso = chave.text.strip()
-
-
-
-    # fallback pelo Id da infNFe
+    # Caso não exista no protocolo,
+    # pega pelo Id da infNFe
 
     if not chave_acesso:
 
@@ -75,9 +104,9 @@ def extract_metadata(xml):
 
 
 
-    # ===============================
-    # Campos NF-e
-    # ===============================
+    # ==================================
+    # Número NF
+    # ==================================
 
     numero = find_element(
         root,
@@ -85,17 +114,42 @@ def extract_metadata(xml):
     )
 
 
+
+    # ==================================
+    # Série
+    # ==================================
+
     serie = find_element(
         root,
         "serie"
     )
 
 
+
+    # ==================================
+    # Valor total
+    # ==================================
+
     valor = find_element(
         root,
         "vNF"
     )
 
+
+    valor_total = 0
+
+
+    if valor is not None and valor.text:
+
+        valor_total = float(
+            valor.text.strip()
+        )
+
+
+
+    # ==================================
+    # Emitente
+    # ==================================
 
     emitente = find_element(
         root,
@@ -115,32 +169,30 @@ def extract_metadata(xml):
 
         "numero":
 
-            numero.text.strip()
-            if numero is not None
-            else None,
+            get_text(
+                numero
+            ),
 
 
 
         "serie":
 
-            serie.text.strip()
-            if serie is not None
-            else None,
+            get_text(
+                serie
+            ),
 
 
 
         "valor_total":
 
-            float(valor.text)
-            if valor is not None
-            else 0,
+            valor_total,
 
 
 
         "emitente":
 
-            emitente.text.strip()
-            if emitente is not None
-            else None
+            get_text(
+                emitente
+            )
 
     }
