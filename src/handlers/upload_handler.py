@@ -1,5 +1,4 @@
 import json
-import base64
 
 
 from validators.xml_validator import validate_xml
@@ -10,6 +9,9 @@ from services.nfe_service import extract_metadata
 
 from services.dynamodb_service import save_metadata
 
+from shared.multipart import extract_file
+
+
 
 
 def upload(event, context):
@@ -17,76 +19,51 @@ def upload(event, context):
     try:
 
 
-        # ==================================
-        # DEBUG API GATEWAY
-        # ==================================
-
         print("==============================")
         print("EVENT RECEBIDO")
         print(event)
         print("==============================")
 
 
+
         # ==================================
-        # 1 - Receber XML
+        # 1 - Extrair arquivo multipart
         # ==================================
 
-        body = event.get(
-            "body"
+        file = extract_file(
+            event
         )
 
 
+        filename = file["filename"]
+
+
+        xml_content = file["content"]
+
+
+
         print("==============================")
-        print("BODY RECEBIDO")
-        print(body)
+        print("ARQUIVO RECEBIDO")
+        print(filename)
         print("==============================")
 
 
-        if not body:
+        print(
+            xml_content[:300]
+        )
+
+
+
+        if not xml_content:
 
             raise Exception(
-                "XML não informado"
+                "Arquivo vazio"
             )
 
 
 
         # ==================================
-        # 2 - Converter XML
-        # ==================================
-
-        if event.get(
-            "isBase64Encoded"
-        ):
-
-
-            print(
-                "Body em Base64"
-            )
-
-
-            xml_content = base64.b64decode(
-                body
-            )
-
-
-        else:
-
-
-            xml_content = body.strip().encode(
-                "utf-8"
-            )
-
-
-
-        print("==============================")
-        print("XML RECEBIDO")
-        print(xml_content[:300])
-        print("==============================")
-
-
-
-        # ==================================
-        # 3 - Validar XML
+        # 2 - Validar XML
         # ==================================
 
         validate_xml(
@@ -101,7 +78,7 @@ def upload(event, context):
 
 
         # ==================================
-        # 4 - Extrair Metadata NF-e
+        # 3 - Extrair Metadata NF-e
         # ==================================
 
         metadata = extract_metadata(
@@ -127,7 +104,7 @@ def upload(event, context):
 
 
         # ==================================
-        # 5 - Salvar XML S3
+        # 4 - Salvar XML S3
         # ==================================
 
         s3_info = save_xml(
@@ -141,9 +118,13 @@ def upload(event, context):
                 s3_info["bucket"],
 
             "s3_key":
-                s3_info["key"]
+                s3_info["key"],
+
+            "filename":
+                filename
 
         })
+
 
 
         print(
@@ -153,7 +134,7 @@ def upload(event, context):
 
 
         # ==================================
-        # 6 - Salvar DynamoDB
+        # 5 - Salvar DynamoDB
         # ==================================
 
         save_metadata(
@@ -168,7 +149,7 @@ def upload(event, context):
 
 
         # ==================================
-        # 7 - Response
+        # 6 - Response
         # ==================================
 
         return {
@@ -183,13 +164,7 @@ def upload(event, context):
                     "application/json",
 
                 "Access-Control-Allow-Origin":
-                    "*",
-
-                "Access-Control-Allow-Headers":
-                    "Content-Type,Authorization",
-
-                "Access-Control-Allow-Methods":
-                    "OPTIONS,POST"
+                    "*"
 
             },
 
@@ -199,8 +174,14 @@ def upload(event, context):
                 "message":
                     "NF-e processada com sucesso",
 
+
                 "nfe_id":
                     metadata["chave_acesso"],
+
+
+                "filename":
+                    filename,
+
 
                 "s3_key":
                     s3_info["key"]
