@@ -11,35 +11,58 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2  # Faz checkout do repositório
+        uses: actions/checkout@v2
 
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.8'  # Versão do Python a ser usada
+          python-version: '3.8'
 
-      - name: Create virtual environment and install dependencies
+      - name: Install dependencies into package dir
         run: |
-          python -m venv venv  # Cria o ambiente virtual
-          source venv/bin/activate  # Ativa o ambiente virtual
-          python -m pip install --upgrade pip  # Atualiza o pip
-          pip install -r requirements.txt  # Instala dependências
+          set -e
+          python -m pip install --upgrade pip
+          rm -rf package
+          mkdir -p package
+          # Instala dependências diretamente no diretório package
+          pip install --target ./package -r requirements.txt
 
-      - name: Zip source code
+      - name: Copy source into package
         run: |
-          # Zipa o código da função Lambda
-          cd src  # Muda para o diretório src
-          zip -r ../function.zip .  # Zipa todos os arquivos e pastas dentro de src
+          set -e
+          # Ajuste se seu código lambda estiver em outro local que não 'src'
+          if [ -d "src" ]; then
+            # Copia todo o conteúdo de src para package (preserva subpastas)
+            cp -r src/* package/ || true
+          else
+            echo "Diretório src não encontrado. Certifique-se de onde está o código da função."
+            exit 1
+          fi
 
-          # Incluindo dependências do ambiente virtual
-          cd ../venv/lib/python3.8/site-packages  # Substitua '3.8' pela versão do Python
-          zip -r ../../../../function.zip .  # Adiciona as bibliotecas ao ZIP
+      - name: Create function.zip in workspace root
+        run: |
+          set -e
+          # Remove ZIP antigo se existir
+          rm -f function.zip
+          # Vai para package e zipa todo o conteúdo, gerando function.zip na raiz
+          cd package
+          zip -r ../function.zip .
+          cd ..
+          echo "Created function.zip with size:"
+          ls -lh function.zip
+
+      - name: Configure AWS creds (optional)
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: sa-east-1
 
       - name: Deploy to AWS Lambda
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: 'sa-east-1'  # Região de São Paulo
+          AWS_REGION: 'sa-east-1'
         run: |
-          # Atualizando o código da função Lambda na AWS
-          aws lambda update-function-code --function-name ralplast-xml-upload --zip-file fileb://../function.zip
+          set -e
+          # Debug: mostrar arquivo antes do deploy
+          ls -la function.zip
+          aws lambda update-function-code --function-name ralplast-xml-upload --zip-file fileb://function.zip --region $AWS_REGION
