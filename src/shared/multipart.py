@@ -1,53 +1,142 @@
+import base64
+
 from email.parser import BytesParser
 from email.policy import default
 
 
+
 def extract_file(event):
 
-    body = event["body"]
+
+    body = event.get(
+        "body"
+    )
 
 
-    if event.get("isBase64Encoded"):
+    if not body:
 
-        body = body.encode("utf-8")
+        raise Exception(
+            "Body vazio"
+        )
 
 
-        import base64
 
-        body = base64.b64decode(body)
+    # ============================
+    # Decode API Gateway
+    # ============================
+
+    if event.get(
+        "isBase64Encoded"
+    ):
+
+        body_bytes = base64.b64decode(
+            body
+        )
 
     else:
 
-        body = body.encode("utf-8")
+        body_bytes = body.encode(
+            "utf-8"
+        )
 
 
-    content_type = (
-        event["headers"].get("content-type")
-        or event["headers"].get("Content-Type")
+
+    # ============================
+    # Headers
+    # ============================
+
+    headers = event.get(
+        "headers",
+        {}
     )
 
 
-    message = BytesParser(
+    print("==============================")
+    print("HEADERS RECEBIDOS")
+    print(headers)
+    print("==============================")
+
+
+
+    content_type = None
+
+
+    for key, value in headers.items():
+
+        if key.lower() == "content-type":
+
+            content_type = value
+
+            break
+
+
+
+    if not content_type:
+
+        raise Exception(
+            "Content-Type multipart não encontrado"
+        )
+
+
+
+    print(
+        "CONTENT TYPE:"
+    )
+
+    print(
+        content_type
+    )
+
+
+
+    # ============================
+    # Parse multipart
+    # ============================
+
+    mime = BytesParser(
         policy=default
     ).parsebytes(
 
-        b"Content-Type: "
-        + content_type.encode()
-        + b"\r\n\r\n"
-        + body
+        (
+            "Content-Type: "
+            + content_type
+            + "\r\n\r\n"
+        ).encode("utf-8")
+        +
+        body_bytes
 
     )
 
 
-    for part in message.iter_attachments():
+
+    for part in mime.iter_attachments():
+
 
         filename = part.get_filename()
 
-        payload = part.get_payload(decode=True)
 
-        return filename, payload
+        payload = part.get_payload(
+            decode=True
+        )
+
+
+        if filename:
+
+
+            return {
+
+
+                "filename":
+                    filename,
+
+
+                "content":
+                    payload
+
+            }
+
 
 
     raise Exception(
-        "Arquivo XML não encontrado."
+        "Nenhum arquivo encontrado"
     )
