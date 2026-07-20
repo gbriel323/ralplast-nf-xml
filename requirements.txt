@@ -1,5 +1,5 @@
-certifi==2026.6.17
-charset-normalizer==3.4.9
-idna==3.18
-requests==2.34.2
-urllib3==2.7.0
+boto3==1.24.20
+requests==2.31.0
+urllib3>=1.25,<3.0
+xmlschema==1.4.0
+python-dotenv==1.0.1

@@ -1,7 +1,5 @@
-import json
+from handlers.upload_handler import upload
+
 
 def lambda_handler(event, context):
-    return {
-        'statusCode': 200,
-        'body': json.dumps('Hello from Lambda do Gabriel !')
-    }
+    return upload(event, context)

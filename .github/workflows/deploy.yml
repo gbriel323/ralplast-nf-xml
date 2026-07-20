@@ -1,36 +1,316 @@
 name: CI Workflow for AWS Lambda
 
+
 on:
+
   push:
+
     branches:
-      - pre-release  # Especifica o branch que ativa o workflow
+      - pre-release
+
+
 
 jobs:
-  deploy:
+
+
+  validate:
+
+
+    name: Validate Lambda Package
+
     runs-on: ubuntu-latest
 
+
+
     steps:
+
+
       - name: Checkout code
-        uses: actions/checkout@v2  # Faz checkout do repositório
+
+        uses: actions/checkout@v4
+
+
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+
+        uses: actions/setup-python@v5
+
         with:
-          python-version: '3.8'  # Versão do Python a ser usada
+
+          python-version: '3.12'
+
+
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip  # Atualiza o pip
-          pip install -r requirements.txt  # Instala dependências
 
-      - name: Deploy to AWS Lambda
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: 'sa-east-1'  # Região de São Paulo
         run: |
-          # Zipando o arquivo da função Lambda
-          zip function.zip src/main.py  # Mude 'lambda_function.py' para o nome correto
-          
-          # Atualizando o código da função Lambda na AWS
-          aws lambda update-function-code --function-name ralplast-xml-upload --zip-file fileb://function.zip
+
+          python -m pip install --upgrade pip
+
+
+          rm -rf package
+
+          mkdir package
+
+
+          pip install \
+            -r requirements.txt \
+            -t package
+
+
+
+      - name: Copy Lambda source
+
+        run: |
+
+          cp -r src/* package/
+
+
+
+      - name: Validate package structure
+
+        run: |
+
+          echo "==== Package content ===="
+
+          ls -la package
+
+
+
+      - name: Validate Lambda imports
+
+        run: |
+
+          python -c "
+
+          import sys
+
+          sys.path.insert(0,'package')
+
+
+          import main
+
+
+          print('Lambda import OK')
+
+          "
+
+
+
+      - name: Validate Lambda handler
+
+        run: |
+
+          python -c "
+
+          import sys
+
+          sys.path.insert(0,'package')
+
+
+          from main import lambda_handler
+
+
+          print('Lambda handler OK')
+
+          "
+
+
+
+      - name: Validate dependencies
+
+        run: |
+
+          python -c "
+
+          import sys
+
+          sys.path.insert(0,'package')
+
+
+          import boto3
+
+          import requests
+
+          import xmlschema
+
+          import dotenv
+
+
+          print('Dependencies OK')
+
+          "
+
+
+
+      - name: Create Lambda zip
+
+        run: |
+
+          cd package
+
+          zip -r ../function.zip .
+
+          cd ..
+
+
+
+          echo "==== ZIP INFO ===="
+
+          ls -lh function.zip
+
+
+
+      - name: Validate ZIP
+
+        run: |
+
+          echo "==== ZIP CONTENT ===="
+
+          unzip -l function.zip | head -100
+
+
+
+      - name: Upload Lambda Package
+
+        uses: actions/upload-artifact@v4
+
+        with:
+
+          name: lambda-package
+
+          path: function.zip
+
+
+
+
+
+  deploy:
+
+
+    name: Deploy AWS Lambda
+
+
+    runs-on: ubuntu-latest
+
+
+    needs: validate
+
+
+
+    steps:
+
+
+      - name: Checkout code
+
+        uses: actions/checkout@v4
+
+
+
+      - name: Configure AWS credentials
+
+        uses: aws-actions/configure-aws-credentials@v4
+
+        with:
+
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+          aws-region: sa-east-1
+
+
+
+      - name: Validate AWS access
+
+        run: |
+
+          echo "==== AWS Identity ===="
+
+          aws sts get-caller-identity
+
+
+
+      - name: Download Lambda package
+
+        uses: actions/download-artifact@v4
+
+        with:
+
+          name: lambda-package
+
+
+
+      - name: Verify package
+
+        run: |
+
+          echo "==== Downloaded package ===="
+
+          ls -lh function.zip
+
+
+          echo ""
+
+          unzip -l function.zip | head -50
+
+
+
+      - name: Check Lambda exists
+
+        env:
+
+          FUNCTION_NAME: ralplast-xml-upload
+
+          AWS_REGION: sa-east-1
+
+        run: |
+
+          echo "Checking Lambda: ${FUNCTION_NAME}"
+
+
+          aws lambda get-function \
+            --function-name "${FUNCTION_NAME}" \
+            --region "${AWS_REGION}"
+
+
+
+      - name: Deploy Lambda
+
+        env:
+
+          FUNCTION_NAME: ralplast-xml-upload
+
+          AWS_REGION: sa-east-1
+
+        run: |
+
+          echo "Deploying..."
+
+          echo "Function: ${FUNCTION_NAME}"
+
+          echo "Region: ${AWS_REGION}"
+
+
+          aws lambda update-function-code \
+            --function-name "${FUNCTION_NAME}" \
+            --zip-file fileb://function.zip \
+            --region "${AWS_REGION}"
+
+
+
+      - name: Deployment verification
+
+        env:
+
+          FUNCTION_NAME: ralplast-xml-upload
+
+          AWS_REGION: sa-east-1
+
+        run: |
+
+          aws lambda get-function \
+            --function-name "${FUNCTION_NAME}" \
+            --region "${AWS_REGION}" \
+            --query 'Configuration.[FunctionName,Runtime,LastModified]' \
+            --output table
