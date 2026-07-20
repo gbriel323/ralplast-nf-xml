@@ -10,7 +10,7 @@ from services.nfe_service import extract_metadata
 from services.dynamodb_service import save_metadata
 
 
-def upload_handler(event, context):
+def upload(event, context):
 
     try:
 
