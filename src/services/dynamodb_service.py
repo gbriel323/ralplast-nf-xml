@@ -6,10 +6,6 @@ from config import Config
 
 
 
-# ==========================================
-# DynamoDB Client
-# ==========================================
-
 dynamodb = boto3.resource(
     "dynamodb",
     region_name=Config.AWS_REGION
@@ -23,17 +19,7 @@ table = dynamodb.Table(
 
 
 
-# ==========================================
-# Converter tipos para DynamoDB
-# ==========================================
-
 def convert_decimal(value):
-
-    """
-    DynamoDB boto3 não aceita float.
-    Converte automaticamente para Decimal.
-    """
-
 
     if isinstance(value, float):
 
@@ -68,29 +54,51 @@ def convert_decimal(value):
 
 
 
-# ==========================================
-# Salvar Metadata NF-e
-# ==========================================
 
 def save_metadata(metadata):
 
-    """
-    Salva metadata da NF-e no DynamoDB.
-    """
 
+    if not metadata.get(
+        "chave_acesso"
+    ):
+
+        raise Exception(
+            "Chave NF-e obrigatória"
+        )
+
+
+    # ===================================
+    # Criar ID DynamoDB
+    # ===================================
+
+    metadata["nfe_id"] = (
+        metadata["chave_acesso"]
+    )
+
+
+
+    # ===================================
+    # Timestamp
+    # ===================================
+
+    from datetime import datetime
+
+
+    metadata["created_at"] = (
+        datetime.utcnow()
+        .isoformat()
+    )
+
+
+
+    # ===================================
+    # Converter Decimal
+    # ===================================
 
     item = convert_decimal(
         metadata
     )
 
-
-    # garante campos mínimos
-
-    if "chave_acesso" not in item:
-
-        raise Exception(
-            "Chave NF-e obrigatória"
-        )
 
 
     table.put_item(
