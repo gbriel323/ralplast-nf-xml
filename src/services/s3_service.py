@@ -12,16 +12,16 @@ s3 = boto3.client(
 )
 
 
-def salvar_no_s3(xml_bytes: bytes) -> dict:
+def save_xml(xml_bytes: bytes) -> dict:
 
-    agora = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc)
 
 
     key = (
         f"nfe/xml/"
-        f"{agora.year}/"
-        f"{agora.month:02d}/"
-        f"{agora.day:02d}/"
+        f"{now.year}/"
+        f"{now.month:02d}/"
+        f"{now.day:02d}/"
         f"{uuid.uuid4()}.xml"
     )
 
