@@ -1,24 +1,32 @@
 name: CI Workflow for AWS Lambda
 
+
 on:
+
   push:
+
     branches:
       - pre-release
 
 
+
 jobs:
 
+
   validate:
+
 
     name: Validate Lambda Package
 
     runs-on: ubuntu-latest
 
 
+
     steps:
 
 
       - name: Checkout code
+
         uses: actions/checkout@v4
 
 
@@ -28,6 +36,7 @@ jobs:
         uses: actions/setup-python@v5
 
         with:
+
           python-version: '3.12'
 
 
@@ -46,9 +55,7 @@ jobs:
 
           pip install \
             -r requirements.txt \
-            -t package \
-            --platform manylinux2014_x86_64 \
-            --only-binary=:all:
+            -t package
 
 
 
@@ -67,24 +74,6 @@ jobs:
           echo "==== Package content ===="
 
           ls -la package
-
-
-          echo ""
-
-          echo "==== Validate dotenv ===="
-
-
-          python -c "
-
-          import sys
-
-          sys.path.insert(0,'package')
-
-          import dotenv
-
-          print('dotenv OK')
-
-          "
 
 
 
@@ -145,6 +134,8 @@ jobs:
 
           import xmlschema
 
+          import dotenv
+
 
           print('Dependencies OK')
 
@@ -156,12 +147,9 @@ jobs:
 
         run: |
 
-
           cd package
 
-
           zip -r ../function.zip .
-
 
           cd ..
 
@@ -169,40 +157,17 @@ jobs:
 
           echo "==== ZIP INFO ===="
 
-
           ls -lh function.zip
 
 
 
-
-      - name: Validate ZIP content
+      - name: Validate ZIP
 
         run: |
 
-
-          echo "==== Checking ZIP ===="
-
+          echo "==== ZIP CONTENT ===="
 
           unzip -l function.zip | head -100
-
-
-
-          echo ""
-
-          echo "==== Checking boto3 ===="
-
-
-          unzip -l function.zip | grep boto3 || true
-
-
-
-          echo ""
-
-          echo "==== Checking dotenv ===="
-
-
-          unzip -l function.zip | grep dotenv || true
-
 
 
 
@@ -236,18 +201,15 @@ jobs:
     steps:
 
 
-
       - name: Checkout code
 
         uses: actions/checkout@v4
 
 
 
-
       - name: Configure AWS credentials
 
         uses: aws-actions/configure-aws-credentials@v4
-
 
         with:
 
@@ -259,12 +221,19 @@ jobs:
 
 
 
+      - name: Validate AWS access
+
+        run: |
+
+          echo "==== AWS Identity ===="
+
+          aws sts get-caller-identity
+
 
 
       - name: Download Lambda package
 
         uses: actions/download-artifact@v4
-
 
         with:
 
@@ -272,41 +241,76 @@ jobs:
 
 
 
-
-
-      - name: Verify downloaded package
+      - name: Verify package
 
         run: |
 
-
-          echo "==== Downloaded artifact ===="
-
+          echo "==== Downloaded package ===="
 
           ls -lh function.zip
 
 
+          echo ""
 
           unzip -l function.zip | head -50
 
 
 
-
-
-
-      - name: Deploy to AWS Lambda
+      - name: Check Lambda exists
 
         env:
 
-          AWS_REGION: sa-east-1
+          FUNCTION_NAME: ralplast-xml-upload
 
+          AWS_REGION: sa-east-1
 
         run: |
 
+          echo "Checking Lambda: ${FUNCTION_NAME}"
+
+
+          aws lambda get-function \
+            --function-name "${FUNCTION_NAME}" \
+            --region "${AWS_REGION}"
+
+
+
+      - name: Deploy Lambda
+
+        env:
+
+          FUNCTION_NAME: ralplast-xml-upload
+
+          AWS_REGION: sa-east-1
+
+        run: |
+
+          echo "Deploying..."
+
+          echo "Function: ${FUNCTION_NAME}"
+
+          echo "Region: ${AWS_REGION}"
+
 
           aws lambda update-function-code \
-
-            --function-name ralplast-xml-upload \
-
+            --function-name "${FUNCTION_NAME}" \
             --zip-file fileb://function.zip \
+            --region "${AWS_REGION}"
 
-            --region $AWS_REGION
+
+
+      - name: Deployment verification
+
+        env:
+
+          FUNCTION_NAME: ralplast-xml-upload
+
+          AWS_REGION: sa-east-1
+
+        run: |
+
+          aws lambda get-function \
+            --function-name "${FUNCTION_NAME}" \
+            --region "${AWS_REGION}" \
+            --query 'Configuration.[FunctionName,Runtime,LastModified]' \
+            --output table
