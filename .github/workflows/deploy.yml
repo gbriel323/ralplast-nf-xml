@@ -23,15 +23,21 @@ jobs:
           python -m pip install --upgrade pip  # Atualiza o pip
           pip install -r requirements.txt  # Instala dependências
 
+      - name: Zip source code
+        run: |
+          # Zipa o código da função Lambda
+          cd src  # Muda para o diretório src
+          zip -r ../function.zip .  # Zipa todos os arquivos e pastas dentro de src
+
+          # Incluindo dependências do ambiente virtual
+          cd ../venv/lib/python3.x/site-packages  # Substitua 'python3.x' pela sua versão do Python
+          zip -r ../../../../function.zip .  # Adiciona as bibliotecas ao ZIP
+
       - name: Deploy to AWS Lambda
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: 'sa-east-1'  # Região de São Paulo
         run: |
-          # Zipando o código da função Lambda
-          cd src  # Muda para o diretório src
-          zip -r ../function.zip .  # Zipa todos os arquivos e pastas dentro de src
-          
           # Atualizando o código da função Lambda na AWS
           aws lambda update-function-code --function-name ralplast-xml-upload --zip-file fileb://../function.zip
