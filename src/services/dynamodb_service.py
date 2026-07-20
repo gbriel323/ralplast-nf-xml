@@ -14,7 +14,7 @@ table = dynamodb.Table(
 )
 
 
-def salvar_metadata(item: dict):
+def save_metadata(item: dict):
 
     response = table.put_item(
         Item=item
