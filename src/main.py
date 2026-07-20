@@ -1,7 +1,5 @@
-import json
+from flask import Flask
+from .upload.upload_handler import app as upload_app
 
-def lambda_handler(event, context):
-    return {
-        'statusCode': 200,
-        'body': json.dumps('Hello from Lambda da Luana!')
-    }
+app = Flask(__name__)
+app.register_blueprint(upload_app)

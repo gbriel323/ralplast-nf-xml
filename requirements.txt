@@ -1,10 +1,13 @@
 certifi==2026.6.17
 charset-normalizer==3.4.9
+Flask==2.2.3
 idna==3.15
 iniconfig==2.1.0
 packaging==26.2
 pluggy==1.5.0
 Pygments==2.19.2
+boto3==1.24.20
 pytest==7.3.2
 requests==2.31.0
-urllib3==2.0.6
+urllib3>=1.25,<3.0
+xmlschema==1.4.0
