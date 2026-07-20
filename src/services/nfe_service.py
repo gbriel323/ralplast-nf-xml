@@ -2,13 +2,26 @@ import xml.etree.ElementTree as ET
 
 
 
-NFE_NAMESPACE = {
-    "nfe": "http://www.portalfiscal.inf.br/nfe"
-}
+def remove_namespace(tag):
+
+    return tag.split("}")[-1]
+
+
+
+def find_element(root, name):
+
+    for element in root.iter():
+
+        if remove_namespace(element.tag) == name:
+
+            return element
+
+    return None
 
 
 
 def extract_metadata(xml):
+
 
     root = ET.fromstring(
         xml
@@ -19,9 +32,9 @@ def extract_metadata(xml):
     # Chave NF-e
     # ===============================
 
-    chave = root.find(
-        ".//nfe:protNFe/nfe:infProt/nfe:chNFe",
-        NFE_NAMESPACE
+    chave = find_element(
+        root,
+        "chNFe"
     )
 
 
@@ -34,14 +47,14 @@ def extract_metadata(xml):
 
 
 
-    # fallback usando Id da infNFe
+    # fallback pelo Id da infNFe
 
     if not chave_acesso:
 
 
-        inf_nfe = root.find(
-            ".//nfe:infNFe",
-            NFE_NAMESPACE
+        inf_nfe = find_element(
+            root,
+            "infNFe"
         )
 
 
@@ -63,31 +76,30 @@ def extract_metadata(xml):
 
 
     # ===============================
-    # Dados NF-e
+    # Campos NF-e
     # ===============================
 
-
-    numero = root.find(
-        ".//nfe:ide/nfe:nNF",
-        NFE_NAMESPACE
+    numero = find_element(
+        root,
+        "nNF"
     )
 
 
-    serie = root.find(
-        ".//nfe:ide/nfe:serie",
-        NFE_NAMESPACE
+    serie = find_element(
+        root,
+        "serie"
     )
 
 
-    valor = root.find(
-        ".//nfe:ICMSTot/nfe:vNF",
-        NFE_NAMESPACE
+    valor = find_element(
+        root,
+        "vNF"
     )
 
 
-    emitente = root.find(
-        ".//nfe:emit/nfe:xNome",
-        NFE_NAMESPACE
+    emitente = find_element(
+        root,
+        "xNome"
     )
 
 
@@ -119,7 +131,7 @@ def extract_metadata(xml):
 
         "valor_total":
 
-            float(valor.text.strip())
+            float(valor.text)
             if valor is not None
             else 0,
 
