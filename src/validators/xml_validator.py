@@ -1,12 +1,11 @@
-from lxml import etree
+import xml.etree.ElementTree as ET
 
 
-
-def validate_xml(xml):
+def validate_xml(xml: bytes):
 
     try:
 
-        root = etree.fromstring(
+        root = ET.fromstring(
             xml
         )
 
@@ -21,8 +20,15 @@ def validate_xml(xml):
         return True
 
 
+    except ET.ParseError as e:
+
+        raise Exception(
+            f"XML inválido: {str(e)}"
+        )
+
+
     except Exception as e:
 
         raise Exception(
-            f"Erro XML: {e}"
+            f"Erro XML: {str(e)}"
         )
