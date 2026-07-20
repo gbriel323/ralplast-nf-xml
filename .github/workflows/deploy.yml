@@ -18,8 +18,10 @@ jobs:
         with:
           python-version: '3.8'  # Versão do Python a ser usada
 
-      - name: Install dependencies
+      - name: Create virtual environment and install dependencies
         run: |
+          python -m venv venv  # Cria o ambiente virtual
+          source venv/bin/activate  # Ativa o ambiente virtual
           python -m pip install --upgrade pip  # Atualiza o pip
           pip install -r requirements.txt  # Instala dependências
 
@@ -30,7 +32,7 @@ jobs:
           zip -r ../function.zip .  # Zipa todos os arquivos e pastas dentro de src
 
           # Incluindo dependências do ambiente virtual
-          cd ../venv/lib/python3.x/site-packages  # Substitua 'python3.x' pela sua versão do Python
+          cd ../venv/lib/python3.8/site-packages  # Substitua '3.8' pela versão do Python
           zip -r ../../../../function.zip .  # Adiciona as bibliotecas ao ZIP
 
       - name: Deploy to AWS Lambda
