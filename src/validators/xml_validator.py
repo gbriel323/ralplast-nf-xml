@@ -1,7 +1,28 @@
-def validar_xml(xml):
+from lxml import etree
 
-    if xml is None:
-        raise Exception("XML não informado.")
 
-    if len(xml) == 0:
-        raise Exception("Arquivo vazio.")
+
+def validate_xml(xml):
+
+    try:
+
+        root = etree.fromstring(
+            xml
+        )
+
+
+        if root is None:
+
+            raise Exception(
+                "XML inválido"
+            )
+
+
+        return True
+
+
+    except Exception as e:
+
+        raise Exception(
+            f"Erro XML: {e}"
+        )
