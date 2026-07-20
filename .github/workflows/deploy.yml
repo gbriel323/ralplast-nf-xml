@@ -46,10 +46,15 @@ jobs:
           echo "==== Package content ===="
           ls -la package
 
+          echo ""
           echo "==== Validate dotenv ===="
-          python -c "import sys; sys.path.insert(0,'package'); import dotenv"
 
-          echo "dotenv OK"
+          python -c "
+          import sys
+          sys.path.insert(0,'package')
+          import dotenv
+          print('dotenv OK')
+          "
 
 
       - name: Validate Lambda imports
@@ -64,15 +69,35 @@ jobs:
           "
 
 
-      - name: Create validation zip
+      - name: Create Lambda zip
         run: |
           cd package
+
           zip -r ../function.zip .
 
           cd ..
 
           echo "==== ZIP INFO ===="
           ls -lh function.zip
+
+
+      - name: Validate ZIP content
+        run: |
+          echo "==== Checking ZIP ===="
+
+          unzip -l function.zip | head -100
+
+          echo ""
+          echo "==== Checking dotenv in ZIP ===="
+
+          unzip -l function.zip | grep dotenv
+
+
+      - name: Upload Lambda Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: lambda-package
+          path: function.zip
 
 
 
@@ -83,10 +108,13 @@ jobs:
 
     needs: validate
 
+
     steps:
+
 
       - name: Checkout code
         uses: actions/checkout@v4
+
 
 
       - name: Configure AWS credentials
@@ -109,11 +137,22 @@ jobs:
 
 
 
+      - name: Verify downloaded package
+        run: |
+          echo "==== Downloaded artifact ===="
+
+          ls -lh function.zip
+
+          unzip -l function.zip | head -50
+
+
+
       - name: Deploy to AWS Lambda
         env:
           AWS_REGION: sa-east-1
 
         run: |
+
           aws lambda update-function-code \
             --function-name ralplast-xml-upload \
             --zip-file fileb://function.zip \
