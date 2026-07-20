@@ -1,4 +1,4 @@
-from lxml import etree
+import xml.etree.ElementTree as ET
 
 
 
@@ -10,11 +10,9 @@ NFE_NAMESPACE = {
 
 def extract_metadata(xml):
 
-
-    root = etree.fromstring(
+    root = ET.fromstring(
         xml
     )
-
 
 
     # ===============================
@@ -23,31 +21,41 @@ def extract_metadata(xml):
 
     chave = root.find(
         ".//nfe:protNFe/nfe:infProt/nfe:chNFe",
-        namespaces=NFE_NAMESPACE
+        NFE_NAMESPACE
     )
 
 
-    # fallback pelo Id da infNFe
-    if chave is None:
+    chave_acesso = None
+
+
+    if chave is not None:
+
+        chave_acesso = chave.text.strip()
+
+
+
+    # fallback usando Id da infNFe
+
+    if not chave_acesso:
 
 
         inf_nfe = root.find(
             ".//nfe:infNFe",
-            namespaces=NFE_NAMESPACE
+            NFE_NAMESPACE
         )
 
 
         if inf_nfe is not None:
 
 
-            nfe_id = inf_nfe.get(
+            nfe_id = inf_nfe.attrib.get(
                 "Id"
             )
 
 
             if nfe_id:
 
-                chave = nfe_id.replace(
+                chave_acesso = nfe_id.replace(
                     "NFe",
                     ""
                 )
@@ -55,31 +63,31 @@ def extract_metadata(xml):
 
 
     # ===============================
-    # Dados básicos
+    # Dados NF-e
     # ===============================
 
 
     numero = root.find(
         ".//nfe:ide/nfe:nNF",
-        namespaces=NFE_NAMESPACE
+        NFE_NAMESPACE
     )
 
 
     serie = root.find(
         ".//nfe:ide/nfe:serie",
-        namespaces=NFE_NAMESPACE
+        NFE_NAMESPACE
     )
 
 
     valor = root.find(
         ".//nfe:ICMSTot/nfe:vNF",
-        namespaces=NFE_NAMESPACE
+        NFE_NAMESPACE
     )
 
 
     emitente = root.find(
         ".//nfe:emit/nfe:xNome",
-        namespaces=NFE_NAMESPACE
+        NFE_NAMESPACE
     )
 
 
@@ -89,9 +97,7 @@ def extract_metadata(xml):
 
         "chave_acesso":
 
-            chave.text.strip()
-            if hasattr(chave, "text")
-            else chave,
+            chave_acesso,
 
 
 
@@ -113,7 +119,7 @@ def extract_metadata(xml):
 
         "valor_total":
 
-            float(valor.text)
+            float(valor.text.strip())
             if valor is not None
             else 0,
 
