@@ -1,128 +1,128 @@
-import xml.etree.ElementTree as ET
+from lxml import etree
 
 
-def extract_metadata(xml: bytes) -> dict:
 
-    try:
+NFE_NAMESPACE = {
+    "nfe": "http://www.portalfiscal.inf.br/nfe"
+}
 
-        root = ET.fromstring(
-            xml
+
+
+def extract_metadata(xml):
+
+
+    root = etree.fromstring(
+        xml
+    )
+
+
+
+    # ===============================
+    # Chave NF-e
+    # ===============================
+
+    chave = root.find(
+        ".//nfe:protNFe/nfe:infProt/nfe:chNFe",
+        namespaces=NFE_NAMESPACE
+    )
+
+
+    # fallback pelo Id da infNFe
+    if chave is None:
+
+
+        inf_nfe = root.find(
+            ".//nfe:infNFe",
+            namespaces=NFE_NAMESPACE
         )
 
 
-        ns = {
-            "nfe": "http://www.portalfiscal.inf.br/nfe"
-        }
+        if inf_nfe is not None:
 
 
-        chave = root.find(
-            ".//nfe:chNFe",
-            ns
-        )
-
-
-        # Caso XML não tenha chNFe,
-        # tenta buscar pelo atributo Id da infNFe
-        if chave is None:
-
-            inf_nfe = root.find(
-                ".//nfe:infNFe",
-                ns
+            nfe_id = inf_nfe.get(
+                "Id"
             )
 
-            if inf_nfe is not None:
 
-                chave_id = inf_nfe.attrib.get(
-                    "Id"
+            if nfe_id:
+
+                chave = nfe_id.replace(
+                    "NFe",
+                    ""
                 )
 
-                if chave_id:
-
-                    chave_valor = chave_id.replace(
-                        "NFe",
-                        ""
-                    )
-
-                else:
-
-                    chave_valor = None
-
-            else:
-
-                chave_valor = None
-
-        else:
-
-            chave_valor = chave.text
 
 
-
-        numero = root.find(
-            ".//nfe:nNF",
-            ns
-        )
+    # ===============================
+    # Dados básicos
+    # ===============================
 
 
-        serie = root.find(
-            ".//nfe:serie",
-            ns
-        )
+    numero = root.find(
+        ".//nfe:ide/nfe:nNF",
+        namespaces=NFE_NAMESPACE
+    )
 
 
-        valor = root.find(
-            ".//nfe:vNF",
-            ns
-        )
+    serie = root.find(
+        ".//nfe:ide/nfe:serie",
+        namespaces=NFE_NAMESPACE
+    )
 
 
-        emitente = root.find(
-            ".//nfe:xNome",
-            ns
-        )
+    valor = root.find(
+        ".//nfe:ICMSTot/nfe:vNF",
+        namespaces=NFE_NAMESPACE
+    )
 
 
-        return {
-
-            "chave_acesso":
-                chave_valor,
-
-
-            "numero":
-                numero.text
-                if numero is not None
-                else None,
-
-
-            "serie":
-                serie.text
-                if serie is not None
-                else None,
-
-
-            "valor_total":
-                float(valor.text)
-                if valor is not None
-                else 0.0,
-
-
-            "emitente":
-                emitente.text
-                if emitente is not None
-                else None
-
-        }
+    emitente = root.find(
+        ".//nfe:emit/nfe:xNome",
+        namespaces=NFE_NAMESPACE
+    )
 
 
 
-    except ET.ParseError as e:
-
-        raise Exception(
-            f"XML NF-e inválido: {str(e)}"
-        )
+    return {
 
 
-    except Exception as e:
+        "chave_acesso":
 
-        raise Exception(
-            f"Erro extraindo metadata NF-e: {str(e)}"
-        )
+            chave.text.strip()
+            if hasattr(chave, "text")
+            else chave,
+
+
+
+        "numero":
+
+            numero.text.strip()
+            if numero is not None
+            else None,
+
+
+
+        "serie":
+
+            serie.text.strip()
+            if serie is not None
+            else None,
+
+
+
+        "valor_total":
+
+            float(valor.text)
+            if valor is not None
+            else 0,
+
+
+
+        "emitente":
+
+            emitente.text.strip()
+            if emitente is not None
+            else None
+
+    }
