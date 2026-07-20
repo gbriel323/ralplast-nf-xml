@@ -14,66 +14,108 @@ def upload_handler(event, context):
 
     try:
 
+        # ===============================
+        # 1 - Receber XML
+        # ===============================
+
         body = event.get("body")
+
+
+        if not body:
+            raise Exception(
+                "XML não informado"
+            )
 
 
         if event.get("isBase64Encoded"):
 
-            xml_content = base64.b64decode(body)
+            xml_content = base64.b64decode(
+                body
+            )
 
         else:
 
-            xml_content = body.encode()
+            xml_content = body.encode(
+                "utf-8"
+            )
 
 
-
-        # 1 - Validar XML
+        # ===============================
+        # 2 - Validar XML
+        # ===============================
 
         validate_xml(
             xml_content
         )
 
 
-
-        # 2 - Extrair dados NF-e
+        # ===============================
+        # 3 - Extrair dados NF-e
+        # ===============================
 
         metadata = extract_metadata(
             xml_content
         )
 
 
+        if not metadata.get("chave_acesso"):
 
-        # 3 - Salvar XML
+            raise Exception(
+                "Chave de acesso NF-e não encontrada"
+            )
 
-        s3_path = save_xml(
-            xml_content,
-            metadata["chave_acesso"]
+
+        # ===============================
+        # 4 - Salvar XML no S3
+        # ===============================
+
+        s3_info = save_xml(
+            xml_content
         )
 
 
+        metadata.update({
 
-        # 4 - Salvar metadata
+            "s3_bucket":
+                s3_info["bucket"],
 
-        metadata["s3_path"] = s3_path
+            "s3_key":
+                s3_info["key"]
 
+        })
+
+
+        # ===============================
+        # 5 - Salvar Metadata DynamoDB
+        # ===============================
 
         save_metadata(
             metadata
         )
 
 
+        # ===============================
+        # 6 - Retorno
+        # ===============================
 
         return {
 
             "statusCode": 200,
 
+            "headers": {
+                "Content-Type": "application/json"
+            },
+
             "body": json.dumps({
 
                 "message":
-                "NF-e processada",
+                    "NF-e processada com sucesso",
 
-                "id":
-                metadata["chave_acesso"]
+                "nfe_id":
+                    metadata["chave_acesso"],
+
+                "s3_key":
+                    s3_info["key"]
 
             })
 
@@ -83,13 +125,23 @@ def upload_handler(event, context):
     except Exception as e:
 
 
+        print(
+            f"Erro processamento NF-e: {str(e)}"
+        )
+
+
         return {
 
-            "statusCode":500,
+            "statusCode": 500,
 
-            "body":json.dumps({
+            "headers": {
+                "Content-Type": "application/json"
+            },
 
-                "error":str(e)
+            "body": json.dumps({
+
+                "error":
+                    str(e)
 
             })
 
