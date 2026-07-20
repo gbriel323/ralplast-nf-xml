@@ -29,8 +29,9 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: 'sa-east-1'  # Região de São Paulo
         run: |
-          # Zipando o arquivo da função Lambda
-          zip function.zip src/main.py  # Mude 'lambda_function.py' para o nome correto
+          # Zipando o código da função Lambda
+          cd src  # Muda para o diretório src
+          zip -r ../function.zip .  # Zipa todos os arquivos e pastas dentro de src
           
           # Atualizando o código da função Lambda na AWS
-          aws lambda update-function-code --function-name ralplast-xml-upload --zip-file fileb://function.zip
+          aws lambda update-function-code --function-name ralplast-xml-upload --zip-file fileb://../function.zip
