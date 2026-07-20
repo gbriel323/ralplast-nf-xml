@@ -1,0 +1,36 @@
+name: CI Workflow for AWS Lambda
+
+on:
+  push:
+    branches:
+      - pre-release  # Especifica o branch que ativa o workflow
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2  # Faz checkout do repositório
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'  # Versão do Python a ser usada
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip  # Atualiza o pip
+          pip install -r requirements.txt  # Instala dependências
+
+      - name: Deploy to AWS Lambda
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: 'sa-east-1'  # Região de São Paulo
+        run: |
+          # Zipando o arquivo da função Lambda
+          zip function.zip src/main.py  # Mude 'lambda_function.py' para o nome correto
+          
+          # Atualizando o código da função Lambda na AWS
+          aws lambda update-function-code --function-name ralplast-xml-upload --zip-file fileb://function.zip
