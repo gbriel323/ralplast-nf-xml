@@ -108,7 +108,8 @@ def upload(event, context):
         # ==================================
 
         s3_info = save_xml(
-            xml_content
+            xml_content,
+            metadata["nfe_id"]
         )
 
 
