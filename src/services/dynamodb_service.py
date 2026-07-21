@@ -1,7 +1,7 @@
 import boto3
 
 from decimal import Decimal
-
+from zoneinfo import ZoneInfo
 from config import Config
 
 
@@ -85,7 +85,7 @@ def save_metadata(metadata):
 
 
     metadata["created_at"] = (
-        datetime.utcnow()
+        datetime.now(ZoneInfo("America/Sao_Paulo"))
         .isoformat()
     )
 
