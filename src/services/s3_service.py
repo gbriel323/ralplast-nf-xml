@@ -1,4 +1,4 @@
-import uuid
+
 from datetime import datetime, timezone
 
 import boto3
@@ -12,7 +12,7 @@ s3 = boto3.client(
 )
 
 
-def save_xml(xml_bytes: bytes) -> dict:
+def save_xml(xml_bytes: bytes, nfe_id: str) -> dict:
 
     now = datetime.now(timezone.utc)
 
@@ -22,7 +22,7 @@ def save_xml(xml_bytes: bytes) -> dict:
         f"{now.year}/"
         f"{now.month:02d}/"
         f"{now.day:02d}/"
-        f"{uuid.uuid4()}.xml"
+        f"{nfe_id}.xml"
     )
 
 

@@ -1,16 +1,16 @@
 import xml.etree.ElementTree as ET
 
 
-
 def remove_namespace(tag):
 
     """
-    Remove namespace do XML.
+    Remove o namespace do XML.
 
-    Ex:
+    Exemplo:
+
     {http://www.portalfiscal.inf.br/nfe}nNF
 
-    vira:
+    Resultado:
 
     nNF
     """
@@ -18,11 +18,11 @@ def remove_namespace(tag):
     return tag.split("}")[-1]
 
 
-
 def find_element(root, name):
 
     """
-    Busca elemento independente de namespace.
+    Busca um elemento pelo nome,
+    independente do namespace.
     """
 
     for element in root.iter():
@@ -34,11 +34,10 @@ def find_element(root, name):
     return None
 
 
-
 def get_text(element):
 
     """
-    Retorna texto tratado do XML.
+    Retorna o texto tratado de um elemento XML.
     """
 
     if element is not None and element.text:
@@ -48,11 +47,10 @@ def get_text(element):
     return None
 
 
-
 def extract_metadata(xml):
 
     """
-    Extrai informações básicas da NF-e.
+    Extrai os principais metadados da NF-e.
     """
 
     root = ET.fromstring(
@@ -61,7 +59,7 @@ def extract_metadata(xml):
 
 
     # ==================================
-    # Chave NF-e
+    # Chave de acesso NF-e
     # ==================================
 
     chave = find_element(
@@ -75,11 +73,11 @@ def extract_metadata(xml):
     )
 
 
-    # Caso não exista no protocolo,
-    # pega pelo Id da infNFe
+    # ==================================
+    # Fallback pelo Id da infNFe
+    # ==================================
 
     if not chave_acesso:
-
 
         inf_nfe = find_element(
             root,
@@ -88,7 +86,6 @@ def extract_metadata(xml):
 
 
         if inf_nfe is not None:
-
 
             nfe_id = inf_nfe.attrib.get(
                 "Id"
@@ -103,6 +100,16 @@ def extract_metadata(xml):
                 )
 
 
+    # ==================================
+    # Validar chave
+    # ==================================
+
+    if not chave_acesso:
+
+        raise Exception(
+            "Chave de acesso NF-e não encontrada"
+        )
+
 
     # ==================================
     # Número NF
@@ -114,7 +121,6 @@ def extract_metadata(xml):
     )
 
 
-
     # ==================================
     # Série
     # ==================================
@@ -123,7 +129,6 @@ def extract_metadata(xml):
         root,
         "serie"
     )
-
 
 
     # ==================================
@@ -146,7 +151,6 @@ def extract_metadata(xml):
         )
 
 
-
     # ==================================
     # Emitente
     # ==================================
@@ -157,40 +161,29 @@ def extract_metadata(xml):
     )
 
 
+    # ==================================
+    # Retorno
+    # ==================================
 
     return {
 
-
-        "chave_acesso":
-
+        "nfe_id":
             chave_acesso,
 
-
-
         "numero":
-
             get_text(
                 numero
             ),
 
-
-
         "serie":
-
             get_text(
                 serie
             ),
 
-
-
         "valor_total":
-
             valor_total,
 
-
-
         "emitente":
-
             get_text(
                 emitente
             )

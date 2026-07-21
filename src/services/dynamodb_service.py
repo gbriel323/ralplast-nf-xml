@@ -1,9 +1,12 @@
 import boto3
 
 from decimal import Decimal
+from zoneinfo import ZoneInfo
+from datetime import datetime
+
+from botocore.exceptions import ClientError
 
 from config import Config
-
 
 
 dynamodb = boto3.resource(
@@ -12,12 +15,14 @@ dynamodb = boto3.resource(
 )
 
 
-
 table = dynamodb.Table(
     "tb-ralplast-nfe-metadata"
 )
 
 
+# ===================================
+# Converter float para Decimal
+# ===================================
 
 def convert_decimal(value):
 
@@ -53,42 +58,63 @@ def convert_decimal(value):
     return value
 
 
+# ===================================
+# Buscar NF-e
+# ===================================
 
+def get_metadata(nfe_id):
 
-def save_metadata(metadata):
-
-
-    if not metadata.get(
-        "chave_acesso"
-    ):
+    if not nfe_id:
 
         raise Exception(
-            "Chave NF-e obrigatória"
+            "nfe_id = chave NF-e obrigatória"
         )
 
 
-    # ===================================
-    # Criar ID DynamoDB
-    # ===================================
+    response = table.get_item(
 
-    metadata["nfe_id"] = (
-        metadata["chave_acesso"]
+        Key={
+            "nfe_id": nfe_id
+        }
+
     )
 
+
+    return response.get(
+        "Item"
+    )
+
+
+# ===================================
+# Salvar Metadata
+# ===================================
+
+def save_metadata(metadata):
+
+    if not metadata.get(
+        "nfe_id"
+    ):
+
+        raise Exception(
+            "nfe_id = chave NF-e obrigatória"
+        )
 
 
     # ===================================
     # Timestamp
     # ===================================
 
-    from datetime import datetime
-
-
     metadata["created_at"] = (
-        datetime.utcnow()
-        .isoformat()
-    )
 
+        datetime.now(
+            ZoneInfo(
+                "America/Sao_Paulo"
+            )
+        )
+
+        .isoformat()
+
+    )
 
 
     # ===================================
@@ -100,10 +126,43 @@ def save_metadata(metadata):
     )
 
 
+    try:
 
-    table.put_item(
-        Item=item
-    )
+        table.put_item(
+
+            Item=item,
+
+            ConditionExpression=
+                "attribute_not_exists(nfe_id)"
+
+        )
+
+
+    except ClientError as e:
+
+
+        if (
+
+            e.response[
+                "Error"
+            ][
+                "Code"
+            ]
+
+            ==
+
+            "ConditionalCheckFailedException"
+
+        ):
+
+            raise Exception(
+
+                "NF-e já cadastrada no sistema"
+
+            )
+
+
+        raise
 
 
     return True
