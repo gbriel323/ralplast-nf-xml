@@ -94,7 +94,7 @@ def upload(event, context):
 
 
         if not metadata.get(
-            "chave_acesso"
+            "nfe_id"
         ):
 
             raise Exception(
@@ -176,7 +176,7 @@ def upload(event, context):
 
 
                 "nfe_id":
-                    metadata["chave_acesso"],
+                    metadata["nfe_id"],
 
 
                 "filename":
