@@ -7,7 +7,7 @@ from services.s3_service import save_xml
 
 from services.nfe_service import extract_metadata
 
-from services.dynamodb_service import save_metadata
+from services.dynamodb_service import (save_metadata, get_metadata)
 
 from shared.multipart import extract_file
 
@@ -100,8 +100,29 @@ def upload(event, context):
             raise Exception(
                 "Chave de acesso NF-e não encontrada"
             )
+        
+        # ==================================
+        # 3.1 - Verificar NF-e existente
+        # ==================================
+        existing_nfe = get_metadata(
+             metadata["nfe_id"]
+        )
 
-
+        if existing_nfe:
+            return {
+                 "statusCode": 409,
+                 "headers": {
+                 "Content-Type":
+                 "application/json",
+                 "Access-Control-Allow-Origin":
+                 "*"
+            },
+                "body": json.dumps({
+                "error":"NF-e já cadastrada",
+                "message": "A NF-e informada já existe no sistema.",
+                "nfe_id": metadata["nfe_id"]
+        })
+            }    
 
         # ==================================
         # 4 - Salvar XML S3
