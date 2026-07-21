@@ -59,11 +59,11 @@ def save_metadata(metadata):
 
 
     if not metadata.get(
-        "chave_acesso"
+        "nfe_id"
     ):
 
         raise Exception(
-            "Chave NF-e obrigatória"
+            "nfe_id = chave NF-e obrigatória"
         )
 
 
@@ -71,9 +71,9 @@ def save_metadata(metadata):
     # Criar ID DynamoDB
     # ===================================
 
-    metadata["nfe_id"] = (
-        metadata["chave_acesso"]
-    )
+    # metadata["nfe_id"] = (
+    #     metadata["chave_acesso"]
+    # )
 
 
 
